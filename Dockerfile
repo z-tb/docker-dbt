@@ -30,7 +30,7 @@ ENV USER_HOME=$USER_HOME
 # N.B. The refs updated automagically every release via bumpversion
 # N.B. dbt-postgres is currently found in the core codebase so a value of dbt-core@<some_version> is correct
 
-# some of these versions may need 
+# some of these versions may need tweaking over time - these versions are currently current and compatible
 ARG dbt_core_ref=dbt-core@v1.7.4
 ARG dbt_postgres_ref=dbt-core@v1.7.2
 ARG dbt_redshift_ref=dbt-redshift@v1.7.1
@@ -153,7 +153,8 @@ RUN apt-get update \
 
 
 # create a user account, non-root, of the user running the build
-#   user gets supplementary sudo group membership
+#   user gets supplementary sudo group membership for testing/installing additional software 
+#   look into docker secrets for managing API keys or other sensitive data. ARGS can be discovered via `docker history`
 ARG USER_UID
 ARG USER_GROUP_GID
 ARG USER_GROUP_NAME
@@ -175,6 +176,7 @@ COPY etc/bashrc-addition /tmp/
 RUN cat /tmp/bashrc-addition >> /etc/bash.bashrc && \
     rm /tmp/bashrc-addition 
 
+# add some extra utilities
 RUN apt-get update && \
 apt-get install sudo \
     net-tools \
@@ -188,16 +190,15 @@ apt-get install sudo \
     git -y
 
 
+# use Posix attributes provided by the environment to clone a user into the docker container. This allows for compatible access on the $HOME
+# directory and /app directories, when mounted
 RUN groupadd -g $USER_GROUP_GID $USER_GROUP_NAME
 RUN useradd -u ${USER_UID} -g ${USER_GROUP_GID} -G sudo -m -s ${USER_SHELL} ${USER_NAME} -d ${USER_HOME}
-
-# add sudo NOPASS access in sudoers
-# RUN echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' > /etc/sudoers.d/sudo-group
 
 # with %sudo, you need to use 'newgrp' after login for some reason, so use the USERNAME here instead
 RUN echo "${USER_NAME} ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/sudo-users
 
-# install hashicorp repo and terraform
+# install hashicorp repo and terraform - nice if you AWS resources to provision in your workflow
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
 RUN apt update &&  apt install -y terraform

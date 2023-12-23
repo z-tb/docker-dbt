@@ -6,6 +6,8 @@ The bulk of the Dockerfile was provided by https://docs.getdbt.com/docs/core/doc
 
 The Makefile provides targets which will build the Docker container to create a user which matches the user UID and GID group of the user building the container. This is intended to run the container without `root` level permissions and allow R/O access to the home directory of the user running the container. On a windows system, you will not have these same Posix attributes and will need to initialize them with values in the Dockerfile since they will not exist in the windows environment and cannot be passed to Docker during build.
 
+Look over the provided .gitignore and make sure it provides the expected functionality 
+
 
 Use the `pcol` alias for a fancier colored prompt with git status reporting.
 
