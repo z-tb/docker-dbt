@@ -1,0 +1,89 @@
+
+#------------------------------------------------------------------
+# returns 1 if branch modified
+#------------------------------------------------------------------
+is_branch_modified()
+{
+   status=0
+   test -n "`git diff 2>/dev/null`" && status=1
+   echo $status
+}
+
+#------------------------------------------------------------------
+# for use with gpull and other aliasse
+#------------------------------------------------------------------
+get_git_branch()
+{
+    git branch 2> /dev/null | grep '^*' |  sed -e '#^[^*]#d' -e 's#[*\(\) ]##g'
+}
+
+#------------------------------------------------------------------
+# display git branch in prompt if cwd is a repo. color change if 
+# modifications present
+#------------------------------------------------------------------
+display_git_branch()
+{
+   bcolor="\033[0;30;42m" # normally black on green. yellow on red if mods
+   test $(is_branch_modified) -eq 1 && bcolor="\033[1;33;41m"
+
+   b="`git branch 2> /dev/null | grep '^*' |  sed -e '#^[^*]#d' -e 's#[*\(\) ]##g'`"
+   test ! -z "$b" &&  echo -e "$bcolor $b \033[0;00;0m"
+}
+
+PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/home/shell"
+
+test -d ~/bin && PATH="$PATH:~/bin"
+export PATH
+
+# directory navigation
+alias ds="find .  -maxdepth 1 -type d -exec du -smh '{}' \;"
+alias dri="ls -lart --color=auto"
+alias dir="ls -lart --color=auto"
+# iptables 
+alias ipt="iptables --line-numbers -nvL"
+alias ipn="iptables --line-numbers -nvL -t nat"
+alias ipt6="ip6tables --line-numbers -nvL"
+alias ipn6="ip6tables --line-numbers -nvL -t nat"
+# command line helpers
+alias ns="netstat -topnavelu"
+alias dmesg="dmesg -T"
+alias shad='ssh-add  ~/.ssh/*_[erd]*sa'
+alias rm="rm -v"
+alias cp="cp -v"
+# git aliases
+alias gbr="git branch -a"
+alias gco="git checkout"
+alias gst="git status -s"
+alias gls="git ls-tree --full-tree -r --name-only HEAD"
+alias gpull='git pull origin `get_git_branch`'
+alias gpush='git push origin `get_git_branch`; git push origin --tags'
+alias gpusha='git push --all origin'
+alias glog='git log --pretty --oneline'
+
+
+# color prompt - run pcol
+function pcol() {
+    PCHAR='$'; UC='\[\e[0;36;40m\]'
+    if [ `id -u` -eq 0 ]; then PCHAR='#'; UC='\[\e[1;33;41m\]'; else UC='\[\e[0;36;40m\]'; fi
+
+    # Define color codes
+    BOLD_CYAN='\[\e[1;36;40m\]'
+    BOLD_PURPLE='\[\e[1;35;44m\]'
+    RESET='\[\e[0;0;00m\]'
+    BOLD_GREEN='\[\e[0;32;40m\]'
+    BOLD_MAGENTA='\[\e[1;35;40m\]'
+    BOLD_YELLOW='\[\e[1;33;40m\]'
+    LIGHT_GRAY='\[\e[0;37;40m\]'
+
+    # User-specific prompt components
+    TIME_DATE="[${BOLD_PURPLE}\$(date '+%I:%M')${RESET} \$(date '+%D')\$(display_git_branch)${BOLD_CYAN}]"
+    USER_HOST="[${BOLD_CYAN}${UC}\u${BOLD_GREEN}@${BOLD_MAGENTA}\h${BOLD_YELLOW} \w${BOLD_CYAN}]"
+    PCHAR="${LIGHT_GRAY}${PCHAR}${RESET}"
+
+    # Combine components into multi-line PS1 without escapes
+    PS1="\n${TIME_DATE}\n${USER_HOST}\n${PCHAR} "
+    export PS1
+}
+
+export EDITOR=vim
+
